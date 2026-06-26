@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>奥斯陆音频导览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(180deg, #e0faf5 0%, #d8f5f0 100%);
+            min-height: 100vh;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            background: linear-gradient(180deg, #e0faf5 0%, #d8f5f0 100%);
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 10px;
+        }
+
+        .header-icon {
+            display: inline-block;
+            color: #3498db;
+            padding: 0;
+            border-radius: 0;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #16a085;
+            font-size: 28px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #4a9985;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .progress-container {
+            margin-bottom: 25px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #c0e8e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #16a085 0%, #1abc9c 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .stop-counter {
+            text-align: center;
+            color: #4a9985;
+            font-size: 13px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .stop-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 12px rgba(22, 160, 133, 0.08);
+            border-left: 6px solid #16a085;
+        }
+
+        .stop-number {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .stop-name {
+            color: #16a085;
+            font-size: 26px;
+            font-weight: 600;
+            line-height: 1.35;
+            margin-bottom: 20px;
+        }
+
+        .stop-description {
+            color: #4a6d6a;
+            font-size: 17px;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .stop-description p {
+            margin-bottom: 15px;
+        }
+
+        .stop-description p:last-child {
+            margin-bottom: 0;
+        }
+
+        .audio-status {
+            background: #d4eef5;
+            border-left: 4px solid #3498db;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            color: #2d5a8a;
+            font-size: 15px;
+            display: none;
+            align-items: center;
+        }
+
+        .audio-status.playing {
+            display: flex;
+        }
+
+        .audio-status.playing::before {
+            content: '🔊';
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        .audio-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .btn-audio {
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .btn-play {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.25);
+        }
+
+        .btn-play:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.25);
+        }
+
+        .btn-stop {
+            background: #e0faf5;
+            color: #3498db;
+            box-shadow: 0 2px 6px rgba(22, 160, 133, 0.08);
+        }
+
+        .btn-stop:active {
+            transform: translateY(1px);
+        }
+
+        .btn-stop:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn-nav {
+            padding: 18px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            background: white;
+            color: #16a085;
+            border: 2px solid #c0e8e0;
+            box-shadow: 0 2px 6px rgba(22, 160, 133, 0.08);
+        }
+
+        .btn-nav:active {
+            transform: translateY(2px);
+        }
+
+        .btn-nav:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #f5faf8;
+        }
+
+        .info-box {
+            background: #d4eef5;
+            border-left: 4px solid #3498db;
+            padding: 16px;
+            border-radius: 10px;
+            color: #2d5a8a;
+            font-size: 15px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .stop-card {
+                padding: 20px;
+            }
+
+            .stop-name {
+                font-size: 22px;
+            }
+
+            .stop-description {
+                font-size: 16px;
+            }
+
+            .btn-audio, .btn-nav {
+                font-size: 16px;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-icon">🎧</div>
+            <h1>奥斯陆音频导览</h1>
+            <p class="subtitle">完整的12站点旅游路线</p>
+        </header>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="stop-counter">
+                第 <span id="stopCounter">1</span> 站，共 12 站
+            </div>
+        </div>
+
+        <div class="stop-card">
+            <div class="stop-number" id="stopNumber">1</div>
+            <h2 class="stop-name" id="stopName">加载中...</h2>
+            <div class="stop-description" id="stopDescription">
+                <p>加载信息中...</p>
+            </div>
+
+            <div class="audio-status" id="audioStatus">
+                播放音频中...
+            </div>
+
+            <div class="audio-buttons">
+                <button class="btn-audio btn-play" id="playBtn" onclick="playAudio()">
+                    🔊 播放
+                </button>
+                <button class="btn-audio btn-stop" id="stopBtn" onclick="stopAudio()" disabled>
+                    ⏹ 停止
+                </button>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="btn-nav" id="prevBtn" onclick="previousStop()">
+                    ⬅️ 上一个
+                </button>
+                <button class="btn-nav" id="nextBtn" onclick="nextStop()">
+                    下一个 ➡️
+                </button>
+            </div>
+        </div>
+
+        <div class="info-box">
+            ℹ️ 完整旅游时长约75分钟
+        </div>
+    </div>
+
+    <script>
+        const stops = [
+            {
+                number: 1,
+                name: "卡尔·约翰斯街和皇宫",
+                description: `欢迎来到奥斯陆最著名的卡尔·约翰斯街，这是城市的文化心脏。这条历史悠久的大道连接皇宫和中央火车站，穿过奥斯陆中心，两旁是商店、餐厅和传统咖啡馆。<br><br>这里矗立着挪威皇家的官邸——皇宫，自1848年以来一直是挪威王室的居所。这座建筑采用新古典主义风格，是挪威建筑的瑰宝。在夏季，你可以观看盛大而传统的皇家卫队换岗仪式。<br><br>你还可以看到挪威议会大厦（斯托蒂莱），这是国家最重要的建筑之一。国家美术馆收藏了挪威最大的艺术收藏，包括爱德华·蒙克等著名艺术家的杰作。不要错过易卜生剧院博物馆，它纪念挪威戏剧大师亨里克·易卜生，他是现代剧院的奠基人之一。<br><br>在卡尔·约翰斯街漫步是一次难忘的体验，你可以在每个角落看到挪威的历史。`
+            },
+            {
+                number: 2,
+                name: "博格斯塔德维恩购物街",
+                description: `我们来到博格斯塔德维恩，奥斯陆最长、最独特的商业街。这条街从皇宫延伸到维格兰公园，提供超过两公里的豪华购物体验。<br><br>博格斯塔德维恩是购物天堂，这里集中了国际奢侈品牌、挪威设计师精品店、现代艺术画廊和专业书店。从传统的挪威时尚品牌到欧洲最新的设计，应有尽有。街道两旁是许多19世纪建造的美丽历史建筑。<br><br>购物之外，你会发现许多温馨的咖啡馆，可以品尝正宗的挪威咖啡和传统糕点。餐厅提供从快餐到米其林级别的北欧美食。秋冬季节，街道装饰得分外精美，营造出浓厚的节日氛围。这是喜爱购物和建筑爱好者的必去之地。`
+            },
+            {
+                number: 3,
+                name: "维格兰雕塑公园——愤怒的小孩",
+                description: `现在我们参观世界上访问量最高的雕塑公园之一——维格兰雕塑公园。这个独特的公园包含超过200件青铜和铸铁雕塑，全部由著名雕塑家古斯塔夫·维格兰创作。<br><br>公园分为几个主题区域，每个区域代表人生的不同阶段，从出生到老年。公园的入口"地狱之门"是受但丁《神曲》启发的杰作。中央的方尖碑高17米，由36个人物雕塑组成，象征生命的循环。<br><br>最著名和最可爱的雕塑是"辛纳塔根"——愤怒的小孩。这个小孩铜像生气的表情被游客抚摸得发亮。根据当地传统，触摸愤怒的小孩会带来好运。这是奥斯陆的标志性雕塑，游客排队拍照。<br><br>维格兰公园是沉思、放松和欣赏艺术的地方。春天时樱花盛开，夏天绿树成荫，冬天白雪皑皑。公园旁还有维格兰博物馆，展出艺术家的素描、陶土模型和生平介绍。`
+            },
+            {
+                number: 4,
+                name: "挪威民俗博物馆——活的传统",
+                description: `欢迎来到挪威民俗博物馆，世界上最大最真实的露天博物馆之一。这个非凡的博物馆保护和展示了挪威人民数百年来的文化、传统和生活方式。<br><br>博物馆拥有150多座传统建筑、木制教堂和历史建筑，都是从挪威各地精心搬迁来的。你可以漫步在17、18、19世纪的真实村庄中，仿佛穿越时光。每座房子都按照当时的方式精心布置，陈列着古老的家具、手工艺品和日用工具。<br><br>你可以进入这些房子，看到几百年前挪威普通人的生活，观察古老的家具、传统服装和生活用具。穿着传统服装的讲解员充满热情地讲述过去的生活故事。夏季有传统工艺表演：古老的织布机、木雕、铁艺和陶艺演示。<br><br>建于1200年的戈尔木教堂是建筑瑰宝。博物馆内的餐厅提供正宗的挪威传统美食，用历代传承的食谱烹制。冬季，博物馆充满节日装饰和传统庆祝活动。每次参观都有新的发现，这是真正体验挪威文化的地方。`
+            },
+            {
+                number: 5,
+                name: "弗雷德里克斯堡和大屠杀纪念中心——维德孔·吉斯林",
+                description: `我们来到弗雷德里克斯堡，这是奥斯陆一个优雅的历史区域，反映了19世纪的城市发展和建筑风格。这是城市中保存最完好、最美丽的街区之一，拥有许多历史建筑。<br><br>大屠杀纪念中心是一个重要的教育机构，专门致力于大屠杀的记忆和人类权利的教育。这不仅仅是一个博物馆，而是一个反思、教育和纪念的地方，记录了人类历史上最黑暗的时刻。<br><br>中心详细记录了挪威在第二次世界大战期间的经历、纳粹德国的占领和挪威犹太人的命运。展览包含个人证词、历史照片、原始文件和个人物品，讲述了真实的人类故事。<br><br>一个重要的历史人物是维德孔·吉斯林，一位挪威军人和政治家，他曾在弗雷德里克斯堡居住。吉斯林与纳粹德国合作，建立了傀儡政权。他的名字在世界各地成为了"叛徒"的代名词——许多语言中"quisling"就是指背叛者。在他的合作下，约770名挪威犹太人被驱逐到集中营，许多人在大屠杀中丧生。吉斯林因战争罪行于1945年被处死。他的遗产是对法西斯合作危险性的警示。<br><br>这个中心的展览既敏感又具有教育意义，适合所有年龄的游客。它是学习历史和思考人权普遍价值的重要地方。`
+            },
+            {
+                number: 6,
+                name: "坤蒂基博物馆、弗拉姆号和海事博物馆",
+                description: `我们来到比格德岛——博物馆岛——这里聚集了三个讲述挪威海洋探险历史的非凡博物馆。<br><br>坤蒂基博物馆收藏着传奇的木筏坤蒂基号，1947年托尔·海尔达尔和他的船员驾驶它从秘鲁航行到波利尼西亚，以证明古代人类迁移的理论。看到原始的木筏绝对令人印象深刻。博物馆讲述这次冒险的完整故事。还有波利尼西亚艺术和考古文物展览。<br><br>弗拉姆号博物馆里有传奇的极地船弗拉姆号，由弗里蒂约夫·南森在1888-1892年的北冰洋探险中使用，后来被罗尔德·阿蒙森用于南极探险。原始的船只保存完好。你可以上船参观，看到船员的船舱，想象在极端温度下探险的情景。博物馆讲述了这些探险家的英勇故事。<br><br>挪威海事博物馆记录了挪威作为海洋国家长达几个世纪的历史。展览包括历史船舶、船舶模型、导航仪器和解释海洋如何成为挪威生活、文化和经济的中心。<br><br>这三个博物馆一起讲述了人类探险、勇气和与海洋的深刻联系的故事。`
+            },
+            {
+                number: 7,
+                name: "弗雷德里克斯堡和大屠杀中心——重游",
+                description: `我们再次来到弗雷德里克斯堡。如果你之前参观过大屠杀纪念中心并了解了维德孔·吉斯林的故事，现在是深入思考和探索这个地区更多的机会。<br><br>弗雷德里克斯堡提供了许多体验。沿着宁静的街道漫步，欣赏19世纪保存完好的建筑优雅设计。这里有几家温馨的咖啡馆，你可以享受正宗的挪威咖啡和传统烤面包，如肉桂卷。当地餐厅提供正宗的挪威美食。<br><br>如果你没有时间访问大屠杀中心，现在是你的第二次机会。如果你已经参观过，你可以在这个安静、祥和的区域漫步，思考你所学到的东西，并在绿色的公园里放松。<br><br>冬季时，这个区域在装饰下看起来格外浪漫，飘落的雪花创造了魔幻的氛围。春天，盛开的树木把这里变成了一个美丽的花园。秋天的色彩也令人印象深刻。这是旅程中完美的放松和思考的地方。`
+            },
+            {
+                number: 8,
+                name: "挪威民俗博物馆——重游",
+                description: `我们再次来到挪威民俗博物馆。如果你之前参观过，现在有机会更深入地体验挪威传统生活。<br><br>如果你还没有进入各个房屋参观，现在是完美的机会。我们特别推荐参观建于1200年的戈尔木教堂，它是中世纪建筑的杰作。参观传统农场，体验农业生活。看看古代的生活条件是多么不同。<br><br>博物馆全年提供特殊体验：现场传统工艺演示、作坊，你可以学习古老的技能，观看现场民间音乐和传统舞蹈表演。洛克基餐厅提供用历代传承食谱烹制的正宗19世纪挪威美食。<br><br>一年中的不同时期，博物馆举办特殊节日：冬季的中世纪圣诞节、夏季的民俗音乐节、传统仲夏节庆祝。每次访问都能发现新的东西。讲解员充满热情地讲述挪威乡村生活的真实故事。<br><br>这是一个既能学习又能享受的博物馆，让你深入了解挪威文化的根源。`
+            },
+            {
+                number: 9,
+                name: "菲利普斯塔德和阿克港湾——现代滨水",
+                description: `现在我们来到阿克港湾和菲利普斯塔德区，这是奥斯陆工业港口的现代和成功改造。这是城市最充满活力、最现代和最多元化的地区之一。<br><br>阿克港湾是一个革命性的滨水开发项目，成功地将历史工业建筑改造成住宅、精品店、艺术画廊、电影院、剧院和世界级餐厅，有美丽的水边露台。旧工业港口已被精妙地重新设想为充满活力的社区空间。<br><br>菲利普斯塔德是国际游轮码头，全球游轮汇聚于此。这个区域拥有餐厅和咖啡馆，可以欣赏峡湾的壮丽景色。你可以看到巨大的国际游轮、帆船和奥斯陆港口的繁忙海运活动。<br><br>这个地区非常适合漫步、享受美食、购买纪念品或欣赏从水上看到的美丽景色。手工工坊、独立书店、艺术馆在这里随处可见。夏季，有现场音乐会、文化节和文化活动。<br><br>阿克港湾代表了奥斯陆的现代和可持续未来，同时尊重和保留其海洋工业遗产。`
+            },
+            {
+                number: 10,
+                name: "阿克城堡、市政厅和诺贝尔和平中心",
+                description: `我们参观阿克城堡，这是奥斯陆的历史和政治心脏。这座令人印象深刻的中世纪堡垒自1299年以来就俯瞰着奥斯陆港口，已有700多年的历史。它宏伟的防御工事由厚实的石墙、塔楼和开阔的视野组成。内部有军事博物馆，详细记录了挪威的军事历史。堡垒在日落时特别美丽，金色的光线照亮古老的石头。<br><br>市政厅是一座标志性和独特的建筑，有两座著名的塔楼。它于1950年竣工，是20世纪中期挪威建筑的杰作。内部装饰精美，展示了挪威艺术。每年12月，这里举行历史性的诺贝尔和平奖颁奖典礼，这是全球重要的和平活动。<br><br>诺贝尔和平中心位于市政厅内，致力于阿尔弗雷德·诺贝尔及其和平遗产。展览展示了自1901年以来所有诺贝尔和平奖得主的信息，并促进关于和平、冲突解决和非暴力的教育。<br><br>阿克城堡的码头非常适合散步，享受峡湾的美景。许多咖啡馆和餐厅提供峡湾景观的用餐体验。日落时分特别迷人，天空被金色和紫色的光线染红。`
+            },
+            {
+                number: 11,
+                name: "Go Nordic游轮线——前往丹麦的渡轮",
+                description: `我们来到Go Nordic游轮线码头，这是挪威和世界之间的重要国际海运枢纽。从这里出发国际渡轮，目标主要是丹麦哥本哈根和其他北欧港口。<br><br>Go Nordic游轮线提供结合运输和休闲假期的旅程。轮船现代舒适，配备船舱、餐厅、娱乐设施和甲板区域。前往哥本哈根的航程约19小时，穿越斯卡格拉克海峡和北海，是难忘的海上体验。<br><br>这是一个有趣的地方，可以看到国际海运的活动。巨大的游轮停靠在码头是令人印象深刻的景象。码头有免税店、咖啡馆、餐厅和完整的乘客设施。如果你想要冒险，可以直接从这个码头登上游轮，体验正宗的北欧海洋之旅。<br><br>这个港口代表了奥斯陆作为国际连通城市的重要性。如果你是冒险爱好者，可以考虑乘坐游轮前往哥本哈根或北欧其他目的地。`
+            },
+            {
+                number: 12,
+                name: "歌剧院、蒙克博物馆、迪克曼图书馆、大教堂和中央火车站",
+                description: `我们完成了12站旅程的最后一站，这个区域汇聚了奥斯陆最重要的文化和建筑地标。<br><br>挪威国家歌剧院是一座壮观和未来主义的建筑，设计得像一座浮出水面的冰山。它的白色大理石外墙令人炫目，反射着奥斯陆的光线。你可以进入并登上倾斜的屋顶，获得城市和峡湾的360度全景。这是当代建筑的杰作，结合了功能性与艺术。<br><br>蒙克博物馆收藏了爱德华·蒙克最著名的作品《呐喊》——世界上最标志性的艺术作品之一。博物馆收藏了最大、最完整的蒙克作品集合。建筑本身现代而明亮，从窗户可以看到港口和峡湾的景色。<br><br>迪克曼主图书馆是奥斯陆的主要公共图书馆，一个现代、温馨和透明的建筑，致力于知识、阅读和作为社区中心。这是所有人的开放空间。<br><br>奥斯陆大教堂是一座17世纪的木制教堂，建筑简朴但美丽。内部是一个宁静、冥想的精神空间。经常有古典音乐演奏会。<br><br>中央火车站是城市的主要交通枢纽，熙熙攘攘，充满来自世界各地的旅客。从这里可以连接挪威任何地方的火车，以及欧洲的国际列车。<br><br>这个最后区域完美代表了现代奥斯陆——文化、建筑、精神和全球连通性的融合。恭喜你完成了12站的完整旅程，探索了奥斯陆最好的部分！`
+            }
+        ];
+
+        let currentStopIndex = 0;
+        let isPlaying = false;
+        let utterance = null;
+
+        function updateDisplay() {
+            const stop = stops[currentStopIndex];
+            
+            document.getElementById('stopCounter').textContent = stop.number;
+            document.getElementById('stopNumber').textContent = stop.number;
+            document.getElementById('stopName').textContent = stop.name;
+            document.getElementById('stopDescription').innerHTML = stop.description.replace(/\n/g, '<br>');
+            
+            const progress = (stop.number / 12) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            document.getElementById('prevBtn').disabled = currentStopIndex === 0;
+            document.getElementById('nextBtn').disabled = currentStopIndex === stops.length - 1;
+            
+            stopAudio();
+            
+            window.scrollTo(0, 0);
+        }
+
+        function playAudio() {
+            const stop = stops[currentStopIndex];
+            const text = `${stop.name}。${stop.description.replace(/<br>/g, ' ')}`;
+            
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                
+                utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.95;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                const statusDiv = document.getElementById('audioStatus');
+                const playBtn = document.getElementById('playBtn');
+                const stopBtn = document.getElementById('stopBtn');
+                
+                utterance.onstart = () => {
+                    statusDiv.classList.add('playing');
+                    isPlaying = true;
+                    playBtn.disabled = true;
+                    stopBtn.disabled = false;
+                };
+                
+                utterance.onend = () => {
+                    statusDiv.classList.remove('playing');
+                    isPlaying = false;
+                    playBtn.disabled = false;
+                    stopBtn.disabled = true;
+                };
+                
+                utterance.onerror = () => {
+                    statusDiv.classList.remove('playing');
+                    isPlaying = false;
+                    playBtn.disabled = false;
+                    stopBtn.disabled = true;
+                };
+                
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert('你的浏览器不支持音频功能');
+            }
+        }
+
+        function stopAudio() {
+            window.speechSynthesis.cancel();
+            isPlaying = false;
+            document.getElementById('audioStatus').classList.remove('playing');
+            document.getElementById('playBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        }
+
+        function nextStop() {
+            if (currentStopIndex < stops.length - 1) {
+                currentStopIndex++;
+                updateDisplay();
+            }
+        }
+
+        function previousStop() {
+            if (currentStopIndex > 0) {
+                currentStopIndex--;
+                updateDisplay();
+            }
+        }
+
+        updateDisplay();
+
+        window.addEventListener('beforeunload', () => {
+            window.speechSynthesis.cancel();
+        });
+    </script>
+</body>
+</html>
